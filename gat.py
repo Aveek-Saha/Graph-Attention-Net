@@ -1,4 +1,4 @@
-import tensoflow as tf
+import tensorflow as tf
 
 class Attention(tf.keras.layers.Layer):
     def __init__(self, units, activation=tf.identity, l2=0.0):
@@ -60,7 +60,7 @@ class GraphAttentionLayer(tf.keras.layers.Layer):
         self.activation = activation
         self.num_heads = num_heads
 
-        self.attn_layers = [Attention(units, tf.identity, l2) for x in range(num_layers)]
+        self.attn_layers = [Attention(units, tf.identity, l2) for x in range(num_heads)]
 
     def call(self, inputs):
 
