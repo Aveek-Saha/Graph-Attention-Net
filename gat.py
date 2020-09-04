@@ -9,21 +9,18 @@ class Attention(tf.keras.layers.Layer):
     def build(self, input_shape):
         self.W = self.add_weight(
           shape=(input_shape[1], self.units),
-          dtype=self.dtype,
           initializer='glorot_uniform',
           regularizer=tf.keras.regularizers.l2(self.l2)
         )
 
         self.a_1 = self.add_weight(
           shape=(input_shape[1], self.units),
-          dtype=self.dtype,
           initializer='glorot_uniform',
           regularizer=tf.keras.regularizers.l2(self.l2)
         )
 
         self.a_2 = self.add_weight(
           shape=(input_shape[1], self.units),
-          dtype=self.dtype,
           initializer='glorot_uniform',
           regularizer=tf.keras.regularizers.l2(self.l2)
         )
