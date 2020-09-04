@@ -1,32 +1,38 @@
 import tensoflow as tf
 
 class Attention(tf.keras.layers.Layer):
-    def __init__(self, l2=0.0):
+    def __init__(self, units, activation=tf.identity, l2=0.0):
         super(Attention, self).__init__()
 
         self.l2 = l2
+        self.activation = activation
+        self.units = units
 
     def build(self, input_shape):
+
+        H_shape, A_shape = input_shape
+
         self.W = self.add_weight(
-          shape=(input_shape[1], self.units),
+          shape=(H_shape[1], self.units),
           initializer='glorot_uniform',
           regularizer=tf.keras.regularizers.l2(self.l2)
         )
 
         self.a_1 = self.add_weight(
-          shape=(input_shape[1], self.units),
+          shape=(self.units, 1),
           initializer='glorot_uniform',
           regularizer=tf.keras.regularizers.l2(self.l2)
         )
 
         self.a_2 = self.add_weight(
-          shape=(input_shape[1], self.units),
+          shape=(self.units, 1),
           initializer='glorot_uniform',
           regularizer=tf.keras.regularizers.l2(self.l2)
         )
 
-    def call(self, H, A):
+    def call(self, inputs):
 
+        H, A = inputs
         X = H @ self.W
 
         attn_self = X @ self.a_1
@@ -40,5 +46,7 @@ class Attention(tf.keras.layers.Layer):
         alpha = tf.nn.softmax(E * A)
 
         H_cap = alpha @ X
+
+        out = self.activation(H_cap)
 
 
