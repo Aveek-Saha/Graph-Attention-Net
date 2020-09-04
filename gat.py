@@ -49,4 +49,27 @@ class Attention(tf.keras.layers.Layer):
 
         out = self.activation(H_cap)
 
+        return out
 
+
+
+class GraphAttentionLayer(tf.keras.layers.Layer):
+    def __init__(self, units, num_heads, activation=tf.identity, l2=0.0):
+        super(GraphAttentionLayer, self).__init__()
+
+        self.activation = activation
+        self.num_heads = num_heads
+
+        self.attn_layers = [Attention(units, tf.identity, l2) for x in range(num_layers)]
+
+    def call(self, inputs):
+
+        H, A = inputs
+
+        H_out = [self.attn_layers[i]([H, A]) for i in range(self.num_heads)]
+
+        multi_head_attn = tf.concat(H_out, axis=-1)
+
+        out = self.activation(multi_head_attn)
+
+        return out
