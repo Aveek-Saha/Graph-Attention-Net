@@ -7,6 +7,8 @@ import csv
 
 from gat import *
 
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
 from sklearn.utils import shuffle
 from sklearn.preprocessing import LabelEncoder
 
@@ -118,9 +120,53 @@ G.add_edges_from(edge_list)
 
 A = nx.convert_matrix.to_numpy_matrix(G)
 A = tf.convert_to_tensor(A, tf.float32)
-print('Graph info: ', nx.info(G))
+# print('Graph info: ', nx.info(G))
+
+l2 = 5e-4
+rate = 0.5
+epochs = 50
+learning_rate = 5e-3 
+patience = 20
+labels_encoded, classes = encode_label(labels)
 
 
-gat = GraphAttentionLayer(8, 8)
+inp_H = tf.keras.Input((features.shape[1],))
+inp_A = tf.keras.Input((num_nodes,))
 
-print(gat([X, A]))
+dropout_1 = tf.keras.layers.Dropout(rate)(inp_H)
+out_1 = GraphAttentionLayer(8, 8, activation=tf.nn.elu, l2=l2)([dropout_1, inp_A])
+
+dropout_2 = tf.keras.layers.Dropout(rate)(out_1)
+out = GraphAttentionLayer(7, 1, True, tf.nn.softmax, l2=l2)([dropout_2, inp_A])
+
+model = tf.keras.Model(inputs= [inp_H, inp_A], outputs=out, name="graph_attention")
+
+optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+
+model.compile(optimizer=optimizer,
+              loss='categorical_crossentropy',
+              weighted_metrics=['acc'])
+
+print(model.summary())
+
+validation_data = ([features, A], labels_encoded, val_mask)
+model.fit([features, A],
+          labels_encoded,
+          sample_weight=train_mask,
+          epochs=epochs,
+          batch_size=num_nodes,
+          validation_data=validation_data,
+          shuffle=False,
+          callbacks=[
+              tf.keras.callbacks.EarlyStopping(patience=patience,  restore_best_weights=True)
+          ])
+
+
+features_test = features[test_mask]
+A_test = np.array(A)[test_mask,:][:,test_mask]
+y_test = labels_encoded[test_mask]
+
+y_pred = model.predict([features, A], batch_size=num_nodes)
+
+report = classification_report(np.argmax(y_test,axis=1), np.argmax(y_pred[test_mask],axis=1), target_names=classes)
+print('GAT Classification Report: \n {}'.format(report))

@@ -15,18 +15,21 @@ class Attention(tf.keras.layers.Layer):
         self.W = self.add_weight(
           shape=(H_shape[1], self.units),
           initializer='glorot_uniform',
+          dtype=tf.float32,
           regularizer=tf.keras.regularizers.l2(self.l2)
         )
 
         self.a_1 = self.add_weight(
           shape=(self.units, 1),
           initializer='glorot_uniform',
+          dtype=tf.float32,
           regularizer=tf.keras.regularizers.l2(self.l2)
         )
 
         self.a_2 = self.add_weight(
           shape=(self.units, 1),
           initializer='glorot_uniform',
+          dtype=tf.float32,
           regularizer=tf.keras.regularizers.l2(self.l2)
         )
 
@@ -41,9 +44,13 @@ class Attention(tf.keras.layers.Layer):
         attention = attn_self + tf.transpose(attn_neighbours)
 
         E = tf.nn.leaky_relu(attention)
-        A = tf.cast(tf.math.greater(A, 0.0), dtype=tf.float32)
 
-        alpha = tf.nn.softmax(E * A)
+        mask = mask = -10e9 * (1.0 - A)
+        masked_E = E + mask
+
+        # A = tf.cast(tf.math.greater(A, 0.0), dtype=tf.float32)
+
+        alpha = tf.nn.softmax(masked_E)
 
         H_cap = alpha @ X
 
@@ -54,13 +61,14 @@ class Attention(tf.keras.layers.Layer):
 
 
 class GraphAttentionLayer(tf.keras.layers.Layer):
-    def __init__(self, units, num_heads, activation=tf.identity, l2=0.0):
+    def __init__(self, units, num_heads, output_layer=False, activation=tf.identity, l2=0.0):
         super(GraphAttentionLayer, self).__init__()
 
         self.activation = activation
         self.num_heads = num_heads
+        self.output_layer = output_layer
 
-        self.attn_layers = [Attention(units, tf.identity, l2) for x in range(num_heads)]
+        self.attn_layers = [Attention(units, l2=l2) for x in range(num_heads)]
 
     def call(self, inputs):
 
@@ -68,8 +76,11 @@ class GraphAttentionLayer(tf.keras.layers.Layer):
 
         H_out = [self.attn_layers[i]([H, A]) for i in range(self.num_heads)]
 
-        multi_head_attn = tf.concat(H_out, axis=-1)
-
-        out = self.activation(multi_head_attn)
+        if self.output_layer:
+            multi_head_attn = tf.reduce_mean(tf.stack(H_out), axis=0)
+            out = self.activation(multi_head_attn)
+        else:
+            multi_head_attn = tf.concat(H_out, axis=-1)
+            out = self.activation(multi_head_attn)
 
         return out
