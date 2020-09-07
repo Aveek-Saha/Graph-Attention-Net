@@ -96,7 +96,7 @@ train_index = index[:(num_nodes-test-val)]
 val_index = index[(num_nodes-test-val):(num_nodes-test)] 
 test_index = index[(num_nodes-test):]
 
-len(train_index), len(val_index), len(test_index)
+print(len(train_index), len(val_index), len(test_index))
 
 train_mask = np.zeros((num_nodes,),dtype=bool)
 train_mask[train_index] = True
@@ -123,10 +123,10 @@ A = tf.convert_to_tensor(A, tf.float32)
 # print('Graph info: ', nx.info(G))
 
 l2 = 5e-4
-rate = 0.5
-epochs = 50
+rate = 0.4
+epochs = 300
 learning_rate = 5e-3 
-patience = 20
+patience = 100
 labels_encoded, classes = encode_label(labels)
 
 
